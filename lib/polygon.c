@@ -36,7 +36,8 @@ Polygon *polygon_create()
 	p -> reflectance = 0.0;
 	p -> transmittance = 0.0;
 	p -> tex_ptr = NULL;
-    
+    p -> project = ProjectUV;
+	
     return p;
 }
 
@@ -59,6 +60,12 @@ Polygon *polygon_createp( int numV, Point *vlist )
 	p -> zBuffer = 1;
     p->vertex = malloc( sizeof(Point) * numV );
     
+	p -> orgVertex = NULL;
+	p -> orgNormal = NULL;
+	p -> reflectance = 0.0;
+	p -> transmittance = 0.0;
+	p -> tex_ptr = NULL;
+	p -> project = ProjectUV;
     //copy over points
     for ( int i = 0; i < numV; i++ )
     {
@@ -130,6 +137,7 @@ void polygon_init( Polygon *p )
 	p -> reflectance = 0.0;
 	p -> transmittance = 0.0;
 	p -> tex_ptr = NULL;
+	p -> project = ProjectUV;
 }
 
 /* initializes the vertex list to the points in vlist
@@ -201,6 +209,7 @@ void polygon_clear( Polygon *p )
 	p -> reflectance = 0.0;
 	p -> transmittance = 0.0;
 	p -> tex_ptr = NULL;
+	p -> project = ProjectUV;
 }
 
 /* sets the oneSided field to the value
@@ -377,8 +386,9 @@ void polygon_setReflectance(Polygon *p, float r){
 void polygon_setTransmittance(Polygon *p, float t){
 	p->transmittance = t;
 }
-void polygon_setTexture(Polygon*p, Tex_cube_map* t){
+void polygon_setTexture(Polygon*p, Tex_cube_map* t, Projection_type proj){
 	p->tex_ptr = t;
+	p -> project = proj;
 }
 
 /* De-allocates/allocates space as necessary in the dest polygon data structure
@@ -434,7 +444,7 @@ void polygon_copy( Polygon *to, Polygon *from )
 	polygon_setOrgVertex(to, numV, from->orgVertex);
 	polygon_setReflectance(to, from->reflectance);
 	polygon_setTransmittance(to, from->transmittance);
-	polygon_setTexture(to, from->tex_ptr);
+	polygon_setTexture(to, from->tex_ptr, from->project);
 }
 
 /* prints Polygon data to the stream designated by the FILE pointer

@@ -27,6 +27,7 @@ typedef struct
 	float reflectance;
 	float transmittance;
 	Tex_cube_map* tex_ptr;
+	Projection_type project;
 } Polygon;
 
 //Polygon functions
@@ -42,7 +43,7 @@ void polygon_setOrgNormals(Polygon *p, int numV, Vector *normals);
 void polygon_setOrgVertex(Polygon *p, int numV, Point *vertex);
 void polygon_setReflectance(Polygon *p, float r);
 void polygon_setTransmittance(Polygon *p, float t);
-void polygon_setTexture(Polygon*p, Tex_cube_map* t);
+void polygon_setTexture(Polygon*p, Tex_cube_map* t, Projection_type proj);
 
 void polygon_setColors(Polygon *p, int numV, Color *clist);
 void polygon_setNormals(Polygon *p, int numV, Vector *normals);

@@ -27,6 +27,7 @@ typedef enum {
 	ObjReflectance,
 	ObjTransmittance,
 	ObjTexture,
+	ObjProjectionType,
 } ObjectType;
 
 typedef union {
@@ -43,6 +44,7 @@ typedef union {
 	Tex_cube_map* texture;
 	float reflectance;
 	float transmittance;
+	Projection_type proj;
 } Object;
 
 typedef struct {
@@ -96,6 +98,7 @@ void module_surfaceCoeff(Module *md, float coeff);
 void module_reflectance(Module *md, float r);
 void module_transmittance(Module *md, float t);
 void module_setTexture(Module *md, Tex_cube_map* t);
+void module_setProjectionType(Module *md, Projection_type p);
 void module_clearTexture(Module *md);
 
 void module_lighting(Module *md, Matrix *VTM, Matrix *GTM, Lighting *lighting);

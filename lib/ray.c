@@ -6,8 +6,11 @@
 #include <limits.h>
 
 #define MAX_DEPTH 8
-#define EPSILON 0.0001
+#define EPSILON 0.00001
+#define SECONDARY_RAYS 3
+#define FALLOFF 0.1
 
+int total_rays = 0;
 
 PolygonList* polygon_list_create(){
 	PolygonList* list = malloc(sizeof(PolygonList));
@@ -151,7 +154,7 @@ double intersect_triangle_MT(Ray *ray, Polygon *p, Vector* baryPt){
 	a = vector_dot(&edge1, &h);
 	
 	
-	if(a > EPSILON ){//something is fundamentally wrong here
+	if(a > -EPSILON && a < EPSILON ){//something is fundamentally wrong here
 		return 0;
 	}
 	
@@ -424,8 +427,10 @@ static void set_up_polygon(Polygon* p, DrawState *ds){
 	}
 	
 	if(ds->tex!=NULL){
-		polygon_setTexture(p, ds->tex);
+		polygon_setTexture(p, ds->tex, ds->proj);
 	}
+	
+	polygon_setReflectance(p, ds->reflectance);
 	//pass reflectance/transmittance here
 }
 
@@ -438,7 +443,7 @@ BoundingBoxNode* module_create_polygon_list(Module *md, Matrix *GTM, DrawState *
 	BoundingBoxNode* bbnode = bb_node_create();
 	
 	matrix_identity(&LTM);
-	//printf("- before while\n");
+	//printf("- before while, coeff = %f\n", reflectCoeff);
 
 	while(cur != NULL){
 		switch(cur -> type){
@@ -463,6 +468,7 @@ BoundingBoxNode* module_create_polygon_list(Module *md, Matrix *GTM, DrawState *
 				matrix_xformPolygon(GTM, &p);
 
 				set_up_polygon(&p, ds);
+
 				
 				bb_node_addPolygon(bbnode, &p);
 				polygon_clear(&p);
@@ -500,6 +506,8 @@ BoundingBoxNode* module_create_polygon_list(Module *md, Matrix *GTM, DrawState *
 				matrix_xformPolygon(&LTM, &p0);
 				matrix_xformPolygon(GTM, &p0);
 				set_up_polygon(&p0, ds);
+
+				//printf("giving polygon reflectance %f\n", reflectCoeff);
 				
 				bb_node_addPolygon(bbnode, &p0);
 				
@@ -529,6 +537,8 @@ BoundingBoxNode* module_create_polygon_list(Module *md, Matrix *GTM, DrawState *
 				matrix_xformPolygon(&LTM, &p1);
 				matrix_xformPolygon(GTM, &p1);
 				set_up_polygon(&p1, ds);
+
+				//printf("giving polygon reflectance %f\n", reflectCoeff);
 				
 				bb_node_addPolygon(bbnode, &p1);
 				
@@ -552,6 +562,7 @@ BoundingBoxNode* module_create_polygon_list(Module *md, Matrix *GTM, DrawState *
 			case ObjSurfaceColor: color_copy(&ds -> surface, &cur -> obj.color);
 			break;
 			case ObjSurfaceCoeff:  ds -> surfaceCoeff = cur -> obj.coeff;
+			break;
             case ObjModule:{
 				//printf("- case module\n");
 				Matrix tempM;
@@ -571,10 +582,16 @@ BoundingBoxNode* module_create_polygon_list(Module *md, Matrix *GTM, DrawState *
             case ObjBezier:{
                 break;
             }
+			case ObjReflectance: {
+				drawstate_setReflectance(ds, cur->obj.reflectance);
+				break;
+			}
 			case ObjTexture:{
 				drawstate_setTexture(ds, cur->obj.texture);
 				break;
-			}
+			}case ObjProjectionType:{
+				drawstate_setProjection(ds, cur->obj.proj);
+			}break;
 			//printf("- end module_create_polygon_list\n");
 		}
 	//printf("about to iterate\n");
@@ -616,6 +633,7 @@ void calculate_barypoint(Vector* v, Vector* baryPt, Vector* result){
 */
 int shoot_ray(Ray *ray, BoundingBoxList* list, Lighting* l, double maxDist, Color* result, double depth){
 	// intersect ray with polygon list
+	total_rays++;
 	if(depth > MAX_DEPTH){
 		return 0;
 	}
@@ -624,8 +642,9 @@ int shoot_ray(Ray *ray, BoundingBoxList* list, Lighting* l, double maxDist, Colo
 	Polygon* p = find_closest_p_bb(ray, list, maxDist, &dist, &baryPt);
 	if(!p){
 		return 0;
-	}
-	
+	}	
+	float reflectCoeff = p->reflectance;
+
 	Vector intersect;
 	vector_copy(&intersect, &ray->ray);
 	
@@ -650,8 +669,10 @@ int shoot_ray(Ray *ray, BoundingBoxList* list, Lighting* l, double maxDist, Colo
 
 	Color c0;
 	Vector bump = {{0.0, 0.0, 0.0, 0.0}};
+	
+	color_copy(&c0, &(p->color[0]));	
 	if(p->tex_ptr == NULL){
-		color_copy(&c0, &(p->color[0]));
+		color_copy(&c0, &(p->color[0]));	
 	}
 	else{
 		Vector orgNorm;
@@ -660,14 +681,15 @@ int shoot_ray(Ray *ray, BoundingBoxList* list, Lighting* l, double maxDist, Colo
 		calculate_barypoint(p->orgVertex, &baryPt, &orgPt);
 	
 		//maybe use this to calculate height map and get the partial derivatives
-		calculate_tex_sphere(p->tex_ptr, &orgPt, &orgNorm, &c0, &bump);
+		calculate_tex(p->tex_ptr, &orgPt, &orgNorm, p->project, &c0, &bump, &reflectCoeff);
 		//printf("bump is \n");
 		//vector_print(&bump, stdout);
-		vector_scale(&bump, 0.2);
+		vector_scale(&bump, 0.5);
 		for(int i = 0; i < 3; i++){
 			
 			norm.val[i] *= 1+bump.val[i];
 		}
+		//vector_normalize(&norm);
 		//vector_print(&norm, stdout);
 	}
 
@@ -706,6 +728,19 @@ int shoot_ray(Ray *ray, BoundingBoxList* list, Lighting* l, double maxDist, Colo
 				color_multiply_float(&l->light[i].color, intensity, &tmp);
 				color_multiply(&tmp, &c0, &tmp);
 				color_add_bounds(&tmp, &cL, &cL);
+				/*
+				Vector Hv;
+				Hv.val[X] = (NL.val[X] + (-ray -> ray.val[X]))/2;
+				Hv.val[Y] = (NL.val[Y] + (-ray -> ray.val[Y]))/2;
+				Hv.val[Z] = (NL.val[Z] + (-ray -> ray.val[Z]))/2;
+				vector_normalize(&Hv);
+				
+				color_multiply(&c0, &l->light[i].color, &tmp);
+				float angle = vector_dot(&Hv, &norm);
+				angle = pow(angle, 10);
+				color_multiply_float(&tmp,  angle/2, &tmp);
+				color_add_bounds(&tmp, &cL, &cL);
+				*/
 				break;	
 			}
 			default:
@@ -714,10 +749,81 @@ int shoot_ray(Ray *ray, BoundingBoxList* list, Lighting* l, double maxDist, Colo
 	}
 	
 	// reflection C2 = C1 + color from reflected ray
-	
-	// ambiant light/diffuse rays CFinal = C2 + ambiant * C0
 	color_copy(result, &cL);
+	Color reflectColor;
+	if(reflectCoeff > EPSILON){
+		calculate_reflection(list, l, maxDist, depth+1, &norm, &(ray->ray), &intersect, reflectCoeff, &reflectColor);
+	}
+	color_add_bounds(result, &reflectColor, result);
+
+	//distributed ray tracing for ambiant light 
+/*
+	Ray secondary_ray;
+	point_copy(&secondary_ray.start, &intersect);
+	// create array for sampling
+	float angles[SECONDARY_RAYS];
+	for(int i = 0; i < SECONDARY_RAYS; i++){
+		angles[i] = (i/SECONDARY_RAYS)-0.5;
+	}
+	Matrix m;
+	Color cA;
+	Vector offset = {{1.0, 1.0, 0.0, 0.0}};
+	Vector tmpV;
+	vector_normalize(&offset);
+	
+	for(int i = 0; i < SECONDARY_RAYS; i++){
+		for(int j = 0; j < SECONDARY_RAYS; j++){
+			
+			offset.val[X] = angles[i];
+			offset.val[Y] = angles[j];
+			vector_normalize(&offset);
+			double ni = vector_dot(&offset, &norm);
+			vector_scale(&offset, ni);
+			vector_subtract(&offset, &norm, &secondary_ray.ray);
+			int intersected = shoot_ray(&secondary_ray, list, l, maxDist, &cA, depth+(MAX_DEPTH/2)-1);
+			if(intersected != 0){
+				color_multiply_float(&cA, 1/SECONDARY_RAYS*1/SECONDARY_RAYS, &cA);
+				color_multiply_float(&cA, FALLOFF, &cA);
+				color_add_bounds(&cA, result, result);
+			}
+		}
+	}
+	*/
+	// ambient light/diffuse rays CFinal = C2 + ambient * C0
+
 	return 1;
+}
+
+/* calculates the color component from reflection and returns it in result
+ * returns all 0 (black) if no reflection color component
+ * receives bounding box list, lighting, max dist and depth for reflection ray
+ * receives surface normal (N) and ray to reflect (I)
+ */
+void calculate_reflection(BoundingBoxList* list, Lighting* l, double maxDist, double depth, Vector *N, Vector *I, Point *intersect, float reflectCoeff, Color *result)
+{
+	//calculate perfect reflection direction
+	/* R = I−2(N⋅I)N
+	 * reflected dir R, incoming light dir I, surface normal N
+	 */
+	Ray reflectDir;
+	point_copy(&(reflectDir.start), intersect);
+	Vector partial;
+	vector_copy(&partial, N);
+	double ni = vector_dot(&partial, I);
+	vector_scale(&partial, 2*ni);
+	vector_subtract(&partial, I, &(reflectDir.ray));
+
+	//send out reflection ray
+	Color reflectColor;
+	int intersected = shoot_ray(&reflectDir, list, l, maxDist, &reflectColor, depth);
+	//if no intersection, just set to black (will not add anything to surface color)
+	if (!intersected)
+	{
+		color_set(&reflectColor, 0.0, 0.0, 0.0);
+	}
+
+	//return resulting color component in result pointer
+	color_multiply_float(&reflectColor, reflectCoeff, result);
 }
 
 void clamp_color(double intensity, Color* cB, Color* cL, Color* mask, int mask_length, Color* result){

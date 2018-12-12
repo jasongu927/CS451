@@ -54,7 +54,7 @@ Pixel *readPPM(int *rows, int *cols, int * colors, char *filename) {
      *rows = num[1];
      *colors = num[2];
 	 
-	 printf("%d\n", num[2]);
+	 //printf("%d\n", num[2]);
 
      if(*cols > 0 && *rows > 0) {
 #if USECPP

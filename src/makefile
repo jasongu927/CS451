@@ -32,7 +32,7 @@ _DEPS = ppmIO.h image.h fractals.h color.h graphics.h list.h polygon.h bezier.h 
 DEPS = $(patsubst %,$(INCDIR)/%,$(_DEPS))
 
 # put a list of the executables here
-EXECUTABLES = xdisp_ray test_ray test_ray_forest test_ray_tex
+EXECUTABLES = xdisp_ray test_ray test_ray_forest test_ray_tex test_ray_cel test_ray_reflect
 # put a list of all the object files here for all executables (with .o endings)
 _OBJ = imagetest.o
 
@@ -110,6 +110,9 @@ test_ray_cel: $(ODIR)/test_ray_cel.o
 
 test_ray_tex: $(ODIR)/test_ray_tex.o
 	$(CC) -o $(BINDIR)/$@ $^ $(LFLAGS) $(LIBS)		
+	
+test_ray_reflect: $(ODIR)/test_ray_reflect.o
+	$(CC) -o $(BINDIR)/$@ $^ $(LFLAGS) $(LIBS)			
 .PHONY: clean
 
 clean:

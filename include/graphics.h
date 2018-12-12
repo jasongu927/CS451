@@ -19,5 +19,6 @@
 #include "lighting.h"
 #include "emitter.h"
 #include "texture.h"
+#include "ray.h"
 
 #endif

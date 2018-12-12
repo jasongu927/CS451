@@ -16,6 +16,7 @@ typedef enum{
 	ShadeGouraud  
 } ShadeMethod;
 
+
 typedef struct{
 	Color color;
 	Color flatColor;
@@ -28,6 +29,7 @@ typedef struct{
 	Tex_cube_map* tex;
 	float transmittance;
 	float reflectance;
+	Projection_type proj;
 }DrawState;
 
 DrawState *drawstate_create( void );
@@ -47,6 +49,8 @@ void drawstate_setTransmittance(DrawState *s, float t );
 void drawstate_setReflectance(DrawState *s, float r );
 
 void drawstate_setTexture(DrawState *s, Tex_cube_map* tex );
+
+void drawstate_setProjection(DrawState *s, Projection_type p);
 
 void drawstate_clearTex(DrawState *s);
 #endif

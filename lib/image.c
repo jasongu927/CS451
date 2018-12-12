@@ -137,6 +137,9 @@ Image *image_read(char *filename){
 	int cols;
 	int colors;
 	Pixel* src = readPPM(&rows, &cols, &colors, filename);
+	if(src == NULL){
+		return NULL;
+	}
 	Image* image = image_create(rows, cols);
 	
 	int i;

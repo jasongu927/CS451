@@ -93,6 +93,10 @@ Element *element_init( ObjectType type, void *obj )
 			break;
 		case ObjTexture:
 			e->obj.texture = (Tex_cube_map*)obj;
+			break;
+		case ObjProjectionType:
+			e->obj.proj = *(Projection_type*)obj;
+			break;
     }
     
     return e;
@@ -935,7 +939,7 @@ void module_cube(Module *md, int solid){
 		
 		polygon_set(&p, 4, &plist[0]);
 		
-		Vector back = {{0.0, 0.0, 1.0}};
+		Vector back = {{0.0, 0.0, -1.0, 0.0}};
 		for(i = 0; i < 4; i++){
 			normals[i] = back;
 		}
@@ -1021,6 +1025,16 @@ void module_setTexture(Module *md, Tex_cube_map* t){
     }
     
     Element *e = element_init( ObjTexture, t );
+    module_insert( md, e );
+}
+
+void module_setProjectionType(Module *md, Projection_type p){
+    if ( md == NULL)
+    {
+        return;
+    }
+    
+    Element *e = element_init( ObjProjectionType,  &p);
     module_insert( md, e );
 }
 

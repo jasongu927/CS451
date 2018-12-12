@@ -2,6 +2,8 @@
 
 #define RAY_H
 
+extern int total_rays;
+
 typedef struct{
 	Vector ray;
 	Point start;
@@ -74,5 +76,19 @@ BoundingBoxNode* module_create_polygon_list(Module *md, Matrix *GTM, DrawState *
 void module_draw_ray(Module *md, Matrix *GTM, View3D *view, DrawState *ds, Lighting *lighting, Image *src);
 
 void module_draw_ray_cel(Module *md, Matrix *GTM, View3D *view, DrawState *ds, Lighting *lighting, Image *src, Color* cel_colors, int mask_length);
+
+double find_closest_p_dist_end_early(Ray *ray, PolygonList *list, double maxDist);
+
+double find_closest_p_bb_dist_end_early(Ray *ray, BoundingBoxList* list, double maxDist);
+
+BoundingBoxList* create_polygon_list(Module *md, Matrix *GTM, DrawState *ds);
+
+int shoot_ray(Ray *ray, BoundingBoxList* list, Lighting* l, double maxDist, Color* result, double depth);
+
+void calculate_reflection(BoundingBoxList* list, Lighting* l, double maxDist, double depth, Vector *N, Vector *I, Point *intersect, float reflectCoeff, Color *result);
+
+void clamp_color(double intensity, Color* cB, Color* cL, Color* mask, int mask_length, Color* result);
+
+double shoot_ray_cel(Ray *ray, BoundingBoxList* list, Lighting* l, double maxDist, Color* result, Color* mask, int mask_length, double depth);
 
 #endif

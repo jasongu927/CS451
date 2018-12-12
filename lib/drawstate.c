@@ -10,6 +10,7 @@ DrawState *drawstate_create( void ){
 	ds -> transmittance = 0;
 	ds -> reflectance = 0;
 	ds -> tex = NULL;
+	ds -> proj = ProjectUV;
 	//ds -> viewer = NULL;
 }
 
@@ -42,6 +43,10 @@ void drawstate_setTexture(DrawState *s, Tex_cube_map* text ){
 	s->tex = text;
 }
 
+void drawstate_setProjection(DrawState *s, Projection_type p ){
+	s->proj = p;
+}
+
 void drawstate_clearTex(DrawState *s){
 	s->tex = NULL;
 }
@@ -54,5 +59,6 @@ void drawstate_copy(DrawState* to, DrawState* from){
 	drawstate_setReflectance(to, from->reflectance);
 	drawstate_setTransmittance(to, from->transmittance);
 	drawstate_setTexture(to, from->tex);
+	drawstate_setProjection(to, from->proj);
 	to-> shade = from -> shade;
 }
