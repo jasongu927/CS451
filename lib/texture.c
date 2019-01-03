@@ -325,17 +325,17 @@ void calculate_tex_cube(Tex_cube_map* tex, Point* point, Vector* norm, Color* re
 
 void free_cube(Cube_map* cube){
 	if(cube->top)
-		free(&cube->top);
+		image_free(&cube->top);
 	if(cube->bottom)
-		free(&cube->bottom);
+		image_free(&cube->bottom);
 	if(cube->front)
-		free(&cube->front);
+		image_free(&cube->front);
 	if(cube->back)
-		free(&cube->back);
+		image_free(&cube->back);
 	if(cube->right)
-		free(&cube->right);
+		image_free(&cube->right);
 	if(cube->left)
-		free(&cube->left);
+		image_free(&cube->left);
 }
 
 void free_tex(Tex_cube_map* map){
